@@ -50,16 +50,16 @@ module.exports = createCoreController('api::task.task', ({ strapi }) => ({
             }
           }
         },
-        populate: ['user'],
-        sort: [{ createdAt: 'desc' }]
+        populate: ['user']
       };
 
-      // Find tasks
-      const content = await strapi.entityService.findMany('api::task.task', query);
-      
-      return this.transformResponse(content);
+      const { results, pagination } = await strapi.service('api::task.task').find({
+        ...query,
+        ...ctx.query
+      });
+
+      return this.transformResponse(results, { pagination });
     } catch (error) {
-      console.error('Error in find:', error);
       return ctx.badRequest(error.message);
     }
   },
@@ -119,34 +119,10 @@ module.exports = createCoreController('api::task.task', ({ strapi }) => ({
         return ctx.unauthorized('You must be logged in to update a task');
       }
 
-      // Try to find task by numeric ID first
-      let task = null;
-      let query = {
-        populate: {
-          user: {
-            fields: ['id', 'username', 'email']
-          }
-        }
-      };
-      
-      // Check if id is numeric
-      if (!isNaN(id)) {
-        task = await strapi.entityService.findOne('api::task.task', id, query);
-      }
-      
-      // If not found by numeric ID, try to find by documentId
-      if (!task) {
-        const tasks = await strapi.entityService.findMany('api::task.task', {
-          ...query,
-          filters: {
-            documentId: id,
-          },
-        });
-        task = tasks[0];
-        if (task) {
-          ctx.params.id = task.id; // Update the id parameter for super.update
-        }
-      }
+      // Find the task
+      const task = await strapi.entityService.findOne('api::task.task', id, {
+        populate: ['user']
+      });
       
       // Check if the task exists and belongs to the user
       if (!task) {
@@ -158,9 +134,12 @@ module.exports = createCoreController('api::task.task', ({ strapi }) => ({
       }
       
       // Update the task
-      const updatedEntity = await strapi.entityService.update('api::task.task', task.id, {
-        data: ctx.request.body.data,
-        populate: ['user'],
+      const updatedEntity = await strapi.entityService.update('api::task.task', id, {
+        data: {
+          ...ctx.request.body.data,
+          user: user.id
+        },
+        populate: ['user']
       });
       
       return this.transformResponse(updatedEntity);
@@ -178,31 +157,10 @@ module.exports = createCoreController('api::task.task', ({ strapi }) => ({
         return ctx.unauthorized('You must be logged in to delete a task');
       }
 
-      // Try to find task by numeric ID first
-      let task = null;
-      let query = {
-        populate: {
-          user: {
-            fields: ['id', 'username', 'email']
-          }
-        }
-      };
-      
-      // Check if id is numeric
-      if (!isNaN(id)) {
-        task = await strapi.entityService.findOne('api::task.task', id, query);
-      }
-      
-      // If not found by numeric ID, try to find by documentId
-      if (!task) {
-        const tasks = await strapi.entityService.findMany('api::task.task', {
-          ...query,
-          filters: {
-            documentId: id,
-          },
-        });
-        task = tasks[0];
-      }
+      // Find the task
+      const task = await strapi.entityService.findOne('api::task.task', id, {
+        populate: ['user']
+      });
       
       // Check if the task exists and belongs to the user
       if (!task) {
@@ -214,9 +172,7 @@ module.exports = createCoreController('api::task.task', ({ strapi }) => ({
       }
       
       // Delete the task
-      const deletedEntity = await strapi.entityService.delete('api::task.task', task.id, {
-        populate: ['user'],
-      });
+      const deletedEntity = await strapi.entityService.delete('api::task.task', id);
       
       return this.transformResponse(deletedEntity);
     } catch (error) {

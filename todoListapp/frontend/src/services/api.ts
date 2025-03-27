@@ -174,36 +174,22 @@ interface SingleTaskResponse {
 }
 
 class TaskApiService {
+  private readonly baseUrl = '/api/tasks';
+
   async getTasks(): Promise<TaskResponse> {
     try {
-      const response = await api.get<TaskResponse>('/api/tasks', {
+      const response = await api.get<TaskResponse>(this.baseUrl, {
         params: {
-          'pagination[page]': 1,
-          'pagination[pageSize]': 100,
           'populate': '*',
           'sort': 'createdAt:desc'
         }
       });
-      
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
-        const errorMessage = error.response?.data?.error?.message || 
-                            'Failed to fetch tasks. Please check your permissions.';
-        
-        console.error('Error fetching tasks:', {
-          status: error.response?.status,
-          message: errorMessage
-        });
-
-        switch (error.response?.status) {
-          case 401:
-            throw new Error('Unauthorized. Please log in again.');
-          case 403:
-            throw new Error('Access forbidden. You do not have permission to view tasks.');
-          default:
-            throw new Error(errorMessage);
-        }
+        const errorMessage = error.response?.data?.error?.message || 'Failed to fetch tasks';
+        console.error('Error fetching tasks:', error);
+        throw new Error(errorMessage);
       }
       throw error;
     }
@@ -211,7 +197,7 @@ class TaskApiService {
 
   async getTask(taskId: string): Promise<Task> {
     try {
-      const response = await api.get<SingleTaskResponse>(`/api/tasks/${taskId}`, {
+      const response = await api.get<SingleTaskResponse>(`${this.baseUrl}/${taskId}`, {
         params: {
           'populate': '*'
         }
@@ -219,24 +205,9 @@ class TaskApiService {
       return response.data.data;
     } catch (error) {
       if (error instanceof AxiosError) {
-        const errorMessage = error.response?.data?.error?.message || 
-                            'Failed to fetch task details.';
-        
-        console.error('Error fetching task:', {
-          status: error.response?.status,
-          message: errorMessage
-        });
-
-        switch (error.response?.status) {
-          case 401:
-            throw new Error('Unauthorized. Please log in again.');
-          case 403:
-            throw new Error('Access forbidden. You do not have permission to view this task.');
-          case 404:
-            throw new Error('Task not found.');
-          default:
-            throw new Error(errorMessage);
-        }
+        const errorMessage = error.response?.data?.error?.message || 'Failed to fetch task details';
+        console.error('Error fetching task:', error);
+        throw new Error(errorMessage);
       }
       throw error;
     }
@@ -244,13 +215,13 @@ class TaskApiService {
 
   async createTask(taskData: CreateTaskInput): Promise<SingleTaskResponse> {
     try {
-      const response = await api.post<SingleTaskResponse>('/api/tasks', {
+      const response = await api.post<SingleTaskResponse>(this.baseUrl, {
         data: {
           title: taskData.title,
-          description: taskData.description,
+          description: taskData.description || '',
           status: taskData.status || 'pending',
-          startDate: taskData.startDate,
-          endDate: taskData.endDate,
+          startDate: taskData.startDate ? new Date(taskData.startDate).toISOString() : null,
+          endDate: taskData.endDate ? new Date(taskData.endDate).toISOString() : null,
           priority: taskData.priority || 'medium',
           isOverdue: false,
         }
@@ -258,22 +229,9 @@ class TaskApiService {
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
-        const errorMessage = error.response?.data?.error?.message || 
-                            'Failed to create task. Please try again.';
-        
-        console.error('Error creating task:', {
-          status: error.response?.status,
-          message: errorMessage
-        });
-
-        switch (error.response?.status) {
-          case 401:
-            throw new Error('Unauthorized. Please log in again.');
-          case 403:
-            throw new Error('Access forbidden. You do not have permission to create tasks.');
-          default:
-            throw new Error(errorMessage);
-        }
+        const errorMessage = error.response?.data?.error?.message || 'Failed to create task';
+        console.error('Error creating task:', error);
+        throw new Error(errorMessage);
       }
       throw error;
     }
@@ -281,37 +239,41 @@ class TaskApiService {
 
   async updateTask(taskId: number, taskData: TaskFormData): Promise<SingleTaskResponse> {
     try {
-      const response = await api.put<SingleTaskResponse>(`/api/tasks/${taskId}`, {
+      // Log the request details
+      console.log('Making update request:', {
+        url: `${this.baseUrl}/${taskId}`,
+        data: taskData,
+        headers: api.defaults.headers
+      });
+
+      const response = await api.put<SingleTaskResponse>(`${this.baseUrl}/${taskId}`, {
         data: {
           title: taskData.title,
-          description: taskData.description,
-          status: taskData.status,
-          priority: taskData.priority,
-          startDate: taskData.startDate ? new Date(taskData.startDate).toISOString() : undefined,
-          endDate: taskData.endDate ? new Date(taskData.endDate).toISOString() : undefined
+          description: taskData.description || '',
+          status: taskData.status || 'pending',
+          startDate: taskData.startDate ? new Date(taskData.startDate).toISOString() : null,
+          endDate: taskData.endDate ? new Date(taskData.endDate).toISOString() : null,
+          priority: taskData.priority || 'medium'
         }
       });
+
+      // Log the response
+      console.log('Update response:', response.data);
+
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
-        const errorMessage = error.response?.data?.error?.message || 
-                            'Failed to update task.';
-        
-        console.error('Error updating task:', {
+        // Log the error details
+        console.error('Update error details:', {
           status: error.response?.status,
-          message: errorMessage
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          headers: error.response?.headers
         });
 
-        switch (error.response?.status) {
-          case 401:
-            throw new Error('Unauthorized. Please log in again.');
-          case 403:
-            throw new Error('Access forbidden. You do not have permission to update this task.');
-          case 404:
-            throw new Error('Task not found.');
-          default:
-            throw new Error(errorMessage);
-        }
+        const errorMessage = error.response?.data?.error?.message || 'Failed to update task';
+        console.error('Error updating task:', error);
+        throw new Error(errorMessage);
       }
       throw error;
     }
@@ -319,27 +281,12 @@ class TaskApiService {
 
   async deleteTask(taskId: number): Promise<void> {
     try {
-      await api.delete(`/api/tasks/${taskId}`);
+      await api.delete(`${this.baseUrl}/${taskId}`);
     } catch (error) {
       if (error instanceof AxiosError) {
-        const errorMessage = error.response?.data?.error?.message || 
-                            'Failed to delete task.';
-        
-        console.error('Error deleting task:', {
-          status: error.response?.status,
-          message: errorMessage
-        });
-
-        switch (error.response?.status) {
-          case 401:
-            throw new Error('Unauthorized. Please log in again.');
-          case 403:
-            throw new Error('Access forbidden. You do not have permission to delete this task.');
-          case 404:
-            throw new Error('Task not found.');
-          default:
-            throw new Error(errorMessage);
-        }
+        const errorMessage = error.response?.data?.error?.message || 'Failed to delete task';
+        console.error('Error deleting task:', error);
+        throw new Error(errorMessage);
       }
       throw error;
     }

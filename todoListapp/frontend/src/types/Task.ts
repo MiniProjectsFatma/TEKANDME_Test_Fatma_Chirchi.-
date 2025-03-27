@@ -1,5 +1,32 @@
-export interface Task {
+export interface TaskAttributes {
   id: number;
+  title: string;
+  description?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  startDate: string | null;
+  endDate: string | null;
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string;
+  documentId?: string;
+  taskUid?: string | null;
+  isOverdue?: boolean;
+  owner?: {
+    id: number;
+    documentId: string;
+    username: string;
+    email: string;
+    provider: string;
+  };
+}
+
+export interface Task {
+  id?: number;
+  data?: {
+    id: number;
+    attributes: TaskAttributes;
+  };
   title: string;
   description?: string;
   status: 'pending' | 'in_progress' | 'completed';

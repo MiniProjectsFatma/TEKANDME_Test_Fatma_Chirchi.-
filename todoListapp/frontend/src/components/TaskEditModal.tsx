@@ -18,20 +18,17 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
   onHide,
   onSave,
 }) => {
-  // Get task data from either direct attributes or nested data structure
-  const taskData = task.data?.attributes || task.attributes;
-  const taskId = (() => {
-    const id = task.data?.id || task.id;
-    if (!id) throw new Error('Task ID is missing');
-    return Number(id);
-  })();
+  // Get task data and ID, handling both direct and nested formats
+  const taskData = task.data?.attributes || task;
+  const taskId = task.data?.id || task.id;
+
   const [formData, setFormData] = useState<TaskFormData>({
-    title: taskData?.title || '',
-    description: taskData?.description || '',
-    status: taskData?.status || 'pending',
-    startDate: taskData?.startDate ? new Date(taskData.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    endDate: taskData?.endDate ? new Date(taskData.endDate).toISOString().split('T')[0] : '',
-    priority: taskData?.priority || 'medium',
+    title: taskData.title || '',
+    description: taskData.description || '',
+    status: taskData.status || 'pending',
+    startDate: taskData.startDate ? new Date(taskData.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    endDate: taskData.endDate ? new Date(taskData.endDate).toISOString().split('T')[0] : '',
+    priority: taskData.priority || 'medium',
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -39,26 +36,34 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setSubmitting(true);
+    setError(null);
 
     try {
       if (!taskId) {
         throw new Error('Task ID is missing');
       }
 
-      await taskApi.updateTask(taskId, formData);
+      // Log the task ID and data being sent
+      console.log('Updating task:', { taskId, formData });
+
+      await taskApi.updateTask(Number(taskId), {
+        ...formData,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null
+      });
+      
       onSave();
       onHide();
-    } catch (err: any) {
-      console.error('Error updating task:', err);
-      setError(err.message || 'Failed to update task. Please try again.');
+    } catch (error) {
+      console.error('Error updating task:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update task');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -85,7 +90,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
               type="text"
               name="title"
               value={formData.title}
-              onChange={handleChange}
+              onChange={handleInputChange}
               required
               disabled={submitting}
             />
@@ -97,7 +102,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
               as="textarea"
               name="description"
               value={formData.description}
-              onChange={handleChange}
+              onChange={handleInputChange}
               rows={3}
               disabled={submitting}
             />
@@ -108,7 +113,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
             <Form.Select
               name="status"
               value={formData.status}
-              onChange={handleChange}
+              onChange={handleInputChange}
               disabled={submitting}
             >
               <option value="pending">Pending</option>
@@ -122,7 +127,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
             <Form.Select
               name="priority"
               value={formData.priority}
-              onChange={handleChange}
+              onChange={handleInputChange}
               disabled={submitting}
             >
               <option value="low">Low</option>
@@ -137,7 +142,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
               type="date"
               name="startDate"
               value={formData.startDate}
-              onChange={handleChange}
+              onChange={handleInputChange}
               required
               disabled={submitting}
             />
@@ -149,7 +154,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
               type="date"
               name="endDate"
               value={formData.endDate}
-              onChange={handleChange}
+              onChange={handleInputChange}
               disabled={submitting}
             />
           </Form.Group>

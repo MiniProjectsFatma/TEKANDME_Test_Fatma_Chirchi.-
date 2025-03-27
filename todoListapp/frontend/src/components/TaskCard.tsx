@@ -10,9 +10,9 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => {
-  const isTaskOverdue = task.attributes.endDate ? isOverdue(task.attributes.endDate) : false;
-  const statusColor = getTaskStatusColor(task.attributes.status, isTaskOverdue);
-  const priorityColor = getPriorityColor(task.attributes.priority);
+  const isTaskOverdue = task.endDate ? isOverdue(task.endDate) : false;
+  const statusColor = getTaskStatusColor(task.status, isTaskOverdue);
+  const priorityColor = getPriorityColor(task.priority);
 
   return (
     <Card className="mb-3 border-0 shadow-sm">
@@ -20,37 +20,37 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => {
         <div className="d-flex align-items-center justify-content-between">
           <div className="d-flex align-items-center gap-2">
             <button
-              onClick={() => task.id && onStatusChange(task.id, task.attributes.status === 'completed' ? 'pending' : 'completed')}
+              onClick={() => task.id && onStatusChange(task.id, task.status === 'completed' ? 'pending' : 'completed')}
               className="btn btn-link p-0"
               style={{ color: statusColor }}
             >
-              {task.attributes.status === 'completed' ? <BsCheckCircle size={20} /> : <BsCircle size={20} />}
+              {task.status === 'completed' ? <BsCheckCircle size={20} /> : <BsCircle size={20} />}
             </button>
             <div>
               <h5 className="mb-1" style={{ 
-                textDecoration: task.attributes.status === 'completed' ? 'line-through' : 'none',
-                color: task.attributes.status === 'completed' ? '#757575' : 'inherit'
+                textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                color: task.status === 'completed' ? '#757575' : 'inherit'
               }}>
-                {task.attributes.title}
+                {task.title}
               </h5>
-              {task.attributes.description && (
-                <p className="mb-2 text-muted small">{task.attributes.description}</p>
+              {task.description && (
+                <p className="mb-2 text-muted small">{task.description}</p>
               )}
             </div>
           </div>
           <div className="d-flex flex-column align-items-end">
             <div className="d-flex gap-2 mb-1">
               <span className="badge" style={{ backgroundColor: statusColor, color: 'white' }}>
-                {task.attributes.status}
+                {task.status}
               </span>
               <span className="badge" style={{ backgroundColor: priorityColor, color: 'white' }}>
-                {task.attributes.priority}
+                {task.priority}
               </span>
             </div>
             <div className="text-muted small">
-              {task.attributes.startDate && task.attributes.endDate && (
+              {task.startDate && task.endDate && (
                 <>
-                  {formatDate(task.attributes.startDate)} - {formatDate(task.attributes.endDate)}
+                  {formatDate(task.startDate)} - {formatDate(task.endDate)}
                 </>
               )}
             </div>

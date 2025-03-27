@@ -77,20 +77,6 @@ export default function Dashboard() {
         </Alert>
       )}
 
-      <Row className="mb-4">
-        <Col>
-          <h1 className="h3">Task Dashboard</h1>
-        </Col>
-        <Col xs="auto">
-          <Button
-            variant="primary"
-            onClick={() => setShowAddForm(true)}
-          >
-            Add New Task
-          </Button>
-        </Col>
-      </Row>
-
       <Row>
         <Col>
           <TaskList
@@ -101,10 +87,21 @@ export default function Dashboard() {
         </Col>
       </Row>
 
+      <Row className="mb-4">
+        <Col xs="auto">
+          <Button
+            variant="primary"
+            onClick={() => setShowAddForm(true)}
+          >
+            Add New Task
+          </Button>
+        </Col>
+      </Row>
+
       <TaskForm
         show={showAddForm}
         onHide={() => setShowAddForm(false)}
-        onSave={handleTaskAdded}
+        onSave={loadTasks}
       />
     </Container>
   );
